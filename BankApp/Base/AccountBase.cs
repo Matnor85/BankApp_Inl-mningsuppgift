@@ -22,24 +22,31 @@ internal abstract class AccountBase
 
     internal abstract decimal Balance();
 
-    internal virtual void Deposit(decimal amount)
+    public List<BankTransaction> GetTransactions()
     {
+        return bankTransactions;
+    }
+
+    internal virtual bool Deposit(decimal amount)
+    {
+        if (amount <= 0) return false;
+
         var t = new BankTransaction
         {
             Amount = amount,
             TrancactionDate = DateTime.Now
         };
         bankTransactions.Add(t);
-
+        return true;
     }
 
-    internal virtual void Withdraw(decimal amount)
+    internal virtual bool Withdraw(decimal amount)
     {
+        if (amount <= 0) return false;
+
         if (Balance() - amount < 0)
         {
-            Console.WriteLine("Du har inte tillräkligt med pengar på kontot!");
-            Console.ReadLine();
-            return;
+            return false;
         }
         var t = new BankTransaction
         {
@@ -47,6 +54,7 @@ internal abstract class AccountBase
             TrancactionDate = DateTime.Now
         };
         bankTransactions.Add(t);
+        return true;
     }
     public string GenerateNumber(int t)
     {

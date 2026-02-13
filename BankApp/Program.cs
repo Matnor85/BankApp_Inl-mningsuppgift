@@ -10,6 +10,10 @@ namespace BankApp
             Console.OutputEncoding = System.Text.Encoding.UTF8;
             Console.CursorVisible = false;
             Bank bank = new Bank();
+            // Seeds för testdata
+            DataGenerator generator = new DataGenerator();
+            generator.PopulateWithTestData(bank);
+            
             while (true)
             {
                 bank.ShowMenu();

@@ -6,6 +6,7 @@ using System.Collections.Generic;
 using System.Text;
 using System.Threading.Channels;
 using System.Xml.Linq;
+using static System.Net.Mime.MediaTypeNames;
 
 namespace BankApp;
 
@@ -106,7 +107,10 @@ internal class Bank
                     new MenuItem("Visa saldo", () =>
                     {
                         Console.Clear();
-                        Console.WriteLine($"Saldo för {local.AccountName} ({local.AccountNumber}): {local.Balance()} kr");
+                        Console.WriteLine($"Saldo för \n- Kontonamn: {local.AccountName,5} \n- Kontonummer: {local.AccountNumber,1}: \n- Saldo: {local.Balance(),12} kr");
+                        Console.WriteLine("\nTransaktioner");
+                        Console.WriteLine("*******************************");
+                        ShowTransaktions(local);
                         Console.WriteLine("Tryck Enter för att fortsätta...");
                         Console.ReadLine();
                         throw new OperationCanceledException();
@@ -124,6 +128,18 @@ internal class Bank
 
         var menu = new ConsoleMenu(accountMenuItems);
         menu.Run();
+    }
+
+    void ShowTransaktions(AccountBase konto)
+    {
+        // Använd metoden istället för att gå direkt på fältet
+        var transaktioner = konto.GetTransactions();
+
+        foreach (var transaktion in transaktioner)
+        {
+            Console.WriteLine($"{transaktion.TrancactionDate}:  {transaktion.Amount} kr");
+        }
+        Console.WriteLine("*******************************");
     }
     public void ShowAccountTypes()
     {
@@ -164,15 +180,42 @@ internal class Bank
 
     private (string name, decimal balance) GetAccountDetails()
     {
-        Console.Clear();
-        //ShowAccountTypes();
-        //var accountType = Console.ReadLine();
-        Console.WriteLine("Ange kontonamn:");
-        var name = Console.ReadLine();
-        Console.WriteLine("Ange startbelopp:");
-        var balance = decimal.Parse(Console.ReadLine());
-        // Logik för att skapa konto baserat på vald kontotyp, kontonamn och startbelopp
-        //accounts.Add(new BankAccount(accountName, startingBalance));
+        string name = "";
+        decimal balance = 0;
+        bool isValid = false;
+
+        do
+        {
+            Console.Clear();
+            Console.WriteLine("--- SKAPA NYTT KONTO ---");
+
+            // 1. Hantera kontonamn
+            Console.WriteLine("Ange kontonamn:");
+            name = Console.ReadLine()!;
+
+            if (string.IsNullOrWhiteSpace(name))
+            {
+                Console.WriteLine("Kontonamnet får inte vara tomt.");
+                Console.ReadKey();
+                continue; // Gör om loopen
+            }
+
+            // 2. Hantera startbelopp
+            Console.WriteLine("Ange startbelopp:");
+            string balanceInput = Console.ReadLine()!;
+
+            // TryParse försöker konvertera och kraschar inte om det är fel
+            if (!decimal.TryParse(balanceInput, out balance) || balance < 0)
+            {
+                Console.WriteLine("Ogiltigt belopp. Ange ett positivt nummer (t.ex. 100 eller 100.50).");
+                Console.ReadKey();
+                continue; // Gör om loopen
+            }
+
+            isValid = true; // Allt är korrekt!
+
+        } while (!isValid);
+
         return (name, balance);
     }
 
@@ -205,7 +248,16 @@ internal class Bank
                     var confirmMenu = new ConsoleMenu(new[]
                     {
                         new MenuItem($"Vill du ta bort kontot '{acc.AccountName}' ({acc.AccountNumber})?"),
-                        new MenuItem("Ja", () =>
+                       
+                        new MenuItem("Nej", () =>
+                        {
+                            Console.Clear();
+                            Console.WriteLine("Åtgärd avbröts.");
+                            Console.WriteLine("Tryck Enter för att fortsätta...");
+                            Console.ReadLine();
+                            throw new OperationCanceledException();
+                        }),
+                         new MenuItem("Ja", () =>
                         {
                             accounts.Remove(acc);
                             Console.Clear();
@@ -217,14 +269,6 @@ internal class Bank
                             removedAny = true;
 
                             // Avsluta confirm-menyn
-                            throw new OperationCanceledException();
-                        }),
-                        new MenuItem("Nej", () =>
-                        {
-                            Console.Clear();
-                            Console.WriteLine("Åtgärd avbröts.");
-                            Console.WriteLine("Tryck Enter för att fortsätta...");
-                            Console.ReadLine();
                             throw new OperationCanceledException();
                         }),
                     });
@@ -305,9 +349,15 @@ internal class Bank
             return;
         }
         // Anropar jag metoden från AccountBase klassen
-        account.Deposit(amount);
+        if (!account.Deposit(amount))
+        {
+            Console.WriteLine("Insättning misslyckades (ogiltigt belopp).");
+        }
+        else
+        {
+            Console.WriteLine($"Insättning på {amount} kr genomfört.");
+        }
 
-        Console.WriteLine($"Insättning på {amount} kr genomfört.");
         Console.ReadKey();
     }
 
@@ -348,15 +398,14 @@ internal class Bank
         }
 
         // 4. Kontrollera om det finns täckning
-        if (account.Balance() < amount)
+        if (!account.Withdraw(amount))
         {
-            Console.WriteLine("Inte tillräckligt med pengar på kontot.");
-            Console.ReadKey();
-            return;
+            Console.WriteLine("Uttag misslyckades. Kontrollera belopp eller saldo.");
         }
-        account.Withdraw(amount);
-
-        Console.WriteLine($"Uttag på {amount} kr genomfört.");
+        else
+        {
+            Console.WriteLine($"Uttag på {amount} kr genomfört.");
+        }
         Console.ReadKey();
     }
 }

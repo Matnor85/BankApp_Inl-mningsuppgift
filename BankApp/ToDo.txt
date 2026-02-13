@@ -29,6 +29,9 @@ V
 Visa alla konton, skriv ut alla konton och saldo på skärmen med Kontonamn och Kontonummer (strängarna) 
 exponera inte Guid:en till användaren.
 
+
+
+
 Hantera konto ska visa en lista av konton, 
 och när man har valt ett konto så ska en ny meny visas, 
 - Sätta in pengar, 
