@@ -17,8 +17,20 @@ internal class DataGenerator
         if (bank == null) throw new ArgumentNullException(nameof(bank));
         if (bank.accounts.Count > 0) return;
 
-        string[] names = { "Anna", "Björn", "Cecilia", "David", "Elin", "Martin", "Sara", "Robert", "Ellen", "Peter", "Johanna" };
-
+        string[] names =
+            {
+            "Anna Andersson",
+            "Björn Borg",
+            "Cecilia Ceder",
+            "David Dahl",
+            "Elin Eriksson",
+            "Martin Molin",
+            "Sara Sandström",
+            "Robert Rosberg",
+            "Ellen Ek",
+            "Peter Persson",
+            "Johanna Johansson"
+            };
         for (int i = 0; i < names.Length; i++)
         {
             // Skapa konto
@@ -48,40 +60,40 @@ internal class DataGenerator
         }
     }
 }
-    /*
-      public void PopulateWithTestData(Bank bank)
+/*
+  public void PopulateWithTestData(Bank bank)
+{
+    Random random = new Random();
+    string[] names = { "Anna", "Björn", "Cecilia", "David", "Martin", "Sara", "Robert", "Ellen", "Peter", "Johanna" };
+
+    for (int i = 0; i < names.Length; i++)
     {
-        Random random = new Random();
-        string[] names = { "Anna", "Björn", "Cecilia", "David", "Martin", "Sara", "Robert", "Ellen", "Peter", "Johanna" };
+        // Skapa konton
+        AccountBase account;
+        if (i % 2 == 0)
+            account = new BankAccount(names[i], random.Next(1000, 10000));
+        else
+            account = new IskAccount(names[i], random.Next(5000, 50000));
 
-        for (int i = 0; i < names.Length; i++)
+        bank.accounts.Add(account); // Lägg till kontot direkt i bankens lista
+        //bank.AddAccount(account);
+
+        // Lägg till slumpmässiga transaktioner
+        for (int t = 0; t < 10; t++)
         {
-            // Skapa konton
-            AccountBase account;
-            if (i % 2 == 0)
-                account = new BankAccount(names[i], random.Next(1000, 10000));
-            else
-                account = new IskAccount(names[i], random.Next(5000, 50000));
-
-            bank.accounts.Add(account); // Lägg till kontot direkt i bankens lista
-            //bank.AddAccount(account);
-
-            // Lägg till slumpmässiga transaktioner
-            for (int t = 0; t < 10; t++)
+            decimal amount = random.Next(-1000, 2000); // Både insättning och uttag
+            if (amount != 0)
             {
-                decimal amount = random.Next(-1000, 2000); // Både insättning och uttag
-                if (amount != 0)
-                {
-                    // Lägg till transaktionen direkt i kontots lista
-                    // (Här använder vi din Deposit/Withdraw logik)
-                    if (amount > 0)
-                        account.Deposit(amount);
-                    else
-                        account.Withdraw(Math.Abs(amount));
-                }
+                // Lägg till transaktionen direkt i kontots lista
+                // (Här använder vi din Deposit/Withdraw logik)
+                if (amount > 0)
+                    account.Deposit(amount);
+                else
+                    account.Withdraw(Math.Abs(amount));
             }
         }
     }
-     */
+}
+ */
 
 
