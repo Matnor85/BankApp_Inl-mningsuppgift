@@ -7,35 +7,19 @@ namespace BankApp
     {
         static void Main(string[] args)
         {
+            // För att säkerställa att konsolen kan visa alla tecken korrekt, inklusive eventuella special tecken
             Console.OutputEncoding = System.Text.Encoding.UTF8;
+            // Dölj markören för att förbättra användarupplevelsen i menyn
             Console.CursorVisible = false;
             Bank bank = new Bank();
+
             // Seeds för testdata
-            DataGenerator generator = new DataGenerator();
-            generator.PopulateWithTestData(bank);
-            
+            var gen = new DataGenerator();
+            gen.PopulateWithTestData(bank);
+
             while (true)
             {
                 bank.ShowMenu();
-
-
-                //var list = new List<AccountBase>();
-
-                //Console.WriteLine("Hello, World!");
-                //var b = new BankAccount();
-                //var s = new IskAccount();
-                //var u = new UddevallaAccount();
-
-
-                //list.Add(b);
-                //list.Add(s);
-                //list.Add(u);
-                // foreach (var item in list)
-                // {
-                //    item.Withdraw(1000);
-                //     Console.WriteLine(item.Balance());
-                //}
-                //Console.WriteLine(Guid.NewGuid());
             }
         }
     }

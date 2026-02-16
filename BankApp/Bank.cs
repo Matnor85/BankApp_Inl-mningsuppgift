@@ -3,6 +3,7 @@ using BankApp.Base;
 using BankApp.UI;
 using System;
 using System.Collections.Generic;
+using System.Security.Principal;
 using System.Text;
 using System.Threading.Channels;
 using System.Xml.Linq;
@@ -16,21 +17,23 @@ internal class Bank
 
     internal void AddAccount(AccountBase account)
     {
-        // Förhindra dubbelinläggning baserat på AccountNumber
-        if (!string.IsNullOrEmpty(account.AccountNumber) &&
-            accounts.Any(a => a.AccountNumber == account.AccountNumber))
+        if (account == null) return;
+
+        // Skydda mot dubbletter baserat på AccountNumber (fallback till Id om AccountNumber saknas)
+        if (!string.IsNullOrEmpty(account.AccountNumber))
         {
-            // Ignorera dubblett eller logga om du vill
-            return;
+            if (accounts.Any(a => a.AccountNumber == account.AccountNumber))
+                return;
+        }
+        else
+        {
+            if (accounts.Any(a => a.Id == account.Id))
+                return;
         }
 
         accounts.Add(account);
     }
-
-    //internal void AddAccount(AccountBase account)
-    //{
-    //    accounts.Add(account);
-    //}
+  
     internal void RemoveAccount(Guid accountId)
     {
         var account = accounts.FirstOrDefault(x => x.Id == accountId);
@@ -70,26 +73,34 @@ internal class Bank
         var sortedList = accounts.OrderBy(a => a.AccountName);
         foreach (var acc in sortedList)
         {
-            var local = acc; // viktig för closure
+            var local = acc; // Skapa en lokal kopia av 'acc' så att den kan användas korrekt i lambda-uttrycket nedan (closure).
+            // Skapa ett menyalternativ per konto. När det väljs, öppna en ny meny med åtgärder för det kontot.
             accountMenuItems.Add(new MenuItem($"- Konto namn: {local.AccountName} - Kontonummer: ({local.AccountNumber})", () =>
             {
                 // När ett konto väljs, visa submenu för det kontot.
                 var accountActions = new List<MenuItem>
                 {
-                    // Rubrik / icke-markerbar rad
-                    new MenuItem($"Konto: {local.AccountName} ({local.AccountNumber})"),
+                    // Rubrik / icke-markerbar rad med kontoinformation (kan inte väljas, bara informativ)
+                    new MenuItem($"- Konto Namn: {local.AccountName}\n" +
+                    $"- Kontotyp: {local.AccountType}\n" +
+                    $"- Kontonumer: {local.AccountNumber}\n" +
+                    $"- CCV: {local.CCV}\n" +
+                    $"- Räntesats: {local.InterestRate}%\n" +
+                    $"- Saldo: {local.Balance():N2}kr\n" +
+                    $"-----------------------------------"),
                     new MenuItem("Sätt in pengar", () =>
                     {
                         Console.Clear();
                         Console.WriteLine($"--- INSÄTTNING till {local.AccountName} ---");
                         Console.WriteLine("Ange belopp:");
+                        // Validera att det är ett giltigt decimalnummer och att det är positivt
                         if (!decimal.TryParse(Console.ReadLine(), out var amount) || amount <= 0)
                         {
                             Console.WriteLine("Ogiltigt belopp. Tryck Enter för att fortsätta...");
                             Console.ReadLine();
                             throw new OperationCanceledException();
                         }
-
+                        
                         local.Deposit(amount);
                         Console.WriteLine($"Insättning {amount} kr genomförd. Tryck Enter för att fortsätta...");
                         Console.ReadLine();
@@ -107,6 +118,7 @@ internal class Bank
                             throw new OperationCanceledException();
                         }
 
+                        // Kontrollera om det finns tillräckligt med pengar innan uttag
                         if (local.Balance() < amount)
                         {
                             Console.WriteLine("Inte tillräckligt med pengar på kontot. Tryck Enter för att fortsätta...");
@@ -114,25 +126,33 @@ internal class Bank
                             throw new OperationCanceledException();
                         }
 
+                        // Anropar jag metoden från AccountBase klassen
                         local.Withdraw(amount);
                         Console.WriteLine($"Uttag {amount} kr genomfört. Tryck Enter för att fortsätta...");
                         Console.ReadLine();
                         throw new OperationCanceledException();
                     }),
-                    new MenuItem("Visa saldo", () =>
+                    new MenuItem("Saldo och Transaktioner", () =>
                     {
                         Console.Clear();
-                        Console.WriteLine($"Saldo för \n- Kontonamn: {local.AccountName,5} \n- Kontonummer: {local.AccountNumber,1}: \n- Saldo: {local.Balance(),12} kr");
+                        Console.WriteLine($"Saldo för \n- Kontonamn: {local.AccountName} \n- Kontonummer: {local.AccountNumber}: \n- Saldo: {local.Balance()} kr");
                         Console.WriteLine("\nTransaktioner");
                         Console.WriteLine("*******************************");
+
+                        if (local.GetTransactions().Count == 0)
+                        {
+                            Console.WriteLine("Inga transaktioner att visa.");
+                        }
+                        // Anropar metoden som visar transaktioner för det valda kontot
                         ShowTransaktions(local);
+
                         Console.WriteLine("Tryck Enter för att fortsätta...");
                         Console.ReadLine();
                         throw new OperationCanceledException();
                     }),
                     new MenuItem("Tillbaka", () => { throw new OperationCanceledException(); })
                 };
-
+                
                 var accMenu = new ConsoleMenu(accountActions);
                 accMenu.Run();
             }));
@@ -147,7 +167,7 @@ internal class Bank
 
     void ShowTransaktions(AccountBase konto)
     {
-        // Använd metoden istället för att gå direkt på fältet
+        // Använd metoden istället för att gå direkt på fältet för att visa transaktioner, så att vi håller inkapslingen intakt.
         var transaktioner = konto.GetTransactions();
 
         foreach (var transaktion in transaktioner)
@@ -204,10 +224,11 @@ internal class Bank
             Console.Clear();
             Console.WriteLine("--- SKAPA NYTT KONTO ---");
 
-            // 1. Hantera kontonamn
+            // Hantera kontonamn
             Console.WriteLine("Ange kontonamn:");
             name = Console.ReadLine()!;
 
+            // Validera att namnet inte är tomt eller bara whitespace
             if (string.IsNullOrWhiteSpace(name))
             {
                 Console.WriteLine("Kontonamnet får inte vara tomt.");
@@ -215,7 +236,7 @@ internal class Bank
                 continue; // Gör om loopen
             }
 
-            // 2. Hantera startbelopp
+            // Hantera startbelopp
             Console.WriteLine("Ange startbelopp:");
             string balanceInput = Console.ReadLine()!;
 
@@ -227,7 +248,8 @@ internal class Bank
                 continue; // Gör om loopen
             }
 
-            isValid = true; // Allt är korrekt!
+            // Allt är korrekt!
+            isValid = true; 
 
         } while (!isValid);
 
@@ -280,7 +302,7 @@ internal class Bank
                             Console.WriteLine("Tryck Enter för att fortsätta...");
                             Console.ReadLine();
 
-                            // Sätt flaggan så yttre loop vet att listan ändrats
+                            // Markera att vi har tagit bort ett konto så att den yttre menyn kan byggas upp på nytt med uppdaterad lista.
                             removedAny = true;
 
                             // Avsluta confirm-menyn
@@ -311,7 +333,6 @@ internal class Bank
     public void ShowAccounts()
     {
         Console.Clear();
-
         Console.WriteLine("Dina konton:\n");
         Console.WriteLine("***************************************");
         if (accounts.Count == 0)
@@ -322,26 +343,22 @@ internal class Bank
             // Avsluta undermeny så ConsoleMenu kan återgå / menyn hålls konsekvent
             throw new OperationCanceledException();
         }
-        else
-        {
+       
             // Sorterar Listan i bokstavsordning.
             var sortedAccounts = accounts.OrderBy(a => a.AccountName).ToList();
             Console.WriteLine($"Antal konton: {sortedAccounts.Count}\n");
 
             foreach (var account in sortedAccounts)
             {
-                Console.WriteLine($"- Konto: {account.AccountType}" +
-                    $"\n- Kontonamn: {account.AccountName} " +
+                Console.WriteLine($"- Kontonamn: {account.AccountName} " +
                     $"\n- Kontonr: {account.AccountNumber}" +
-                    $"\n- CCV: {account.CCV} " +
-                    $"\n- Saldo: {account.Balance():N2}kr" +
-                    $"\n- Räntesats: {account.InterestRate}%");
+                    $"\n- Saldo: {account.Balance():N2}kr");
                 Console.WriteLine("***************************************");
             }
-        }
+        
         Console.WriteLine("\nTryck Enter för att gå tillbaka.");
         Console.ReadLine();
-        // Signalera att vi vill återgå till föregående meny (samma mönster som du använder för andra menyer)
+        // Återgår till föregående meny (samma mönster som du använder för andra menyer)
         throw new OperationCanceledException();
     }
 
@@ -357,11 +374,11 @@ internal class Bank
             return;
         }
 
-        // 1. Fråga efter kontonummer
+        // Fråga efter kontonummer
         Console.WriteLine("Ange kontonummer eller kontonamn att sätta in till:");
         var inputNumber = Console.ReadLine().Trim();
 
-        // 2. Hitta rätt konto
+        // Hitta rätt konto baserat på både kontonummer och kontonamn
         var account = accounts.FirstOrDefault(a => a.AccountNumber == inputNumber || a.AccountName == inputNumber);
 
         if (account == null)
@@ -371,8 +388,9 @@ internal class Bank
             return;
         }
 
-        // 3. Fråga efter belopp
+        // Fråga efter belopp
         Console.WriteLine($"Hur mycket vill du sätta in på {account.AccountName}?");
+        // Validera att det är ett giltigt decimalnummer och att det är positivt
         if (!decimal.TryParse(Console.ReadLine(), out decimal amount) || amount <= 0)
         {
             Console.WriteLine("Ogiltigt belopp.");
@@ -405,11 +423,11 @@ internal class Bank
             return;
         }
 
-        // 1. Fråga efter kontonummer
+        // Fråga efter kontonummer
         Console.WriteLine("Ange kontonummer eller kontonamn att ta ut från:");
         var inputNumber = Console.ReadLine().Trim();
 
-        // 2. Hitta rätt konto
+        // Hitta rätt konto
         var account = accounts.FirstOrDefault(a => a.AccountNumber == inputNumber || a.AccountName == inputNumber);
 
         if (account == null)
@@ -419,7 +437,7 @@ internal class Bank
             return;
         }
 
-        // 3. Fråga efter belopp
+        // Fråga efter belopp
         Console.WriteLine($"Hur mycket vill du ta ut från {account.AccountName}?");
         if (!decimal.TryParse(Console.ReadLine(), out decimal amount) || amount <= 0)
         {
@@ -428,7 +446,7 @@ internal class Bank
             return;
         }
 
-        // 4. Kontrollera om det finns täckning
+        // Kontrollera om det finns täckning
         if (!account.Withdraw(amount))
         {
             Console.WriteLine("Uttag misslyckades. Kontrollera belopp eller saldo.");

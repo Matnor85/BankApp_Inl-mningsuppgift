@@ -21,6 +21,7 @@ internal class ConsoleMenu
     // Huvudloopen som kör menyn tills användaren avslutar.
     public void Run()
     {
+        Console.Clear();
         // Om menyn är tom eller inget valbart objekt finns, avbryt direkt
         if (_items.Count == 0 || _selected == -1) return;
 
@@ -95,19 +96,19 @@ internal class ConsoleMenu
             else
             {
                 // Inte markerat: Skriver ut dom normalt.
-                Console.WriteLine($"  {item.Text}");
+                Console.WriteLine($"   {item.Text}");
             }
         }
 
         // 2. Flytta markören till nederkanten av konsolen
         // Console.WindowHeight ger oss det totala antalet rader
-        int bottomLine = Console.WindowHeight - 4; // -4 för att ha lite marginal (instrument + tomma rader)
+        //int bottomLine = Console.WindowHeight - 4; // -4 för att ha lite marginal (instrument + tomma rader)
 
-        // Se till att vi inte försöker sätta markören utanför fönstret
-        if (bottomLine > 0)
-        {
-            Console.SetCursorPosition(0, bottomLine);
-        }
+        //// Se till att vi inte försöker sätta markören utanför fönstret
+        //if (bottomLine > 0)
+        //{
+        //    Console.SetCursorPosition(0, bottomLine);
+        //}
 
         // 3. Skriv ut instruktionerna längst ner
         Console.WriteLine("-----------------------------------");

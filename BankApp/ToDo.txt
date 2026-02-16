@@ -3,10 +3,6 @@ inkapsling
 Abstraktion
 Polymorfism
 
-
-
-
-
 Uppgift:
 Skapa en meny där användaren kan 
 lägga till konto 
@@ -14,23 +10,17 @@ tabort konto
 visa alla konton 
 hantera konto.
 
-
-
 Skapa konto där ska användaren kunna välja mellan de tre olika kontotyperna som vi skapade förut. 
 Kontonamn och Kontonummer (strängarna) ska fyllas i via konstruktor. 
 Användaren kan få sätta Kontonamn om så önskas.
 V
 
-
 Tabort konto ska användaren få se vilka konton som finns och välja vilket som ska kunnas tas bort.
 V
-
 
 Visa alla konton, skriv ut alla konton och saldo på skärmen med Kontonamn och Kontonummer (strängarna) 
 exponera inte Guid:en till användaren.
 V
-
-
 
 Hantera konto ska visa en lista av konton, 
 och när man har valt ett konto så ska en ny meny visas, 
@@ -39,14 +29,13 @@ och när man har valt ett konto så ska en ny meny visas,
 - visa saldo.
 V
 
-
 i program.cs filen så ska hela programmet startas via
 new Bank().ShowBankMenu();
 V
 
-
 Menyer, loopar och switchar ska bo inuti Bank klassen.
 
+-------------------------------------------------------------------------------------------------
 
 Hur throw new OperationCanceledException(); fungerar i min kod.
 

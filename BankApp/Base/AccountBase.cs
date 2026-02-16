@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Text;
 
 namespace BankApp.Base;
@@ -15,10 +16,7 @@ internal abstract class AccountBase
     public decimal InterestRate { get; set; } = 0;
 
     protected List<BankTransaction> bankTransactions = new List<BankTransaction>();
-    protected AccountBase()
-    {
-
-    }
+   
 
     internal abstract decimal Balance();
 
@@ -56,13 +54,17 @@ internal abstract class AccountBase
         bankTransactions.Add(t);
         return true;
     }
+    // För att undvika att skapa en ny Random-instans varje gång,
+    // vilket kan leda till samma nummer om det sker snabbt, använder vi en statisk instans.
     private static readonly Random s_random = new Random();
 
     // Robust GenerateNumber: kan ta en befintlig kontolista att kontrollera unikt mot.
     public string GenerateNumber(int t, IEnumerable<AccountBase>? existingAccounts = null)
     {
+        // Validera att t är positivt för att undvika oändliga loopar eller ogiltiga nummer.
         if (t <= 0) throw new ArgumentOutOfRangeException(nameof(t), "t måste vara > 0");
 
+        // Skapa en HashSet av befintliga kontonummer för snabb uppslagning. Ignorera null eller tomma nummer.
         var existing = (existingAccounts ?? Enumerable.Empty<AccountBase>())
                        .Select(a => a.AccountNumber)
                        .Where(n => !string.IsNullOrEmpty(n))
@@ -71,6 +73,7 @@ internal abstract class AccountBase
         string newAccountNumber;
         do
         {
+            // Bygger kontonumren med en StringBuilder för bättre prestanda
             var sb = new StringBuilder(t + (t - 1) / 4);
             for (int i = 0; i < t; i++)
             {
@@ -80,9 +83,10 @@ internal abstract class AccountBase
                     sb.Append('-');
                 }
             }
+            // Generera det nya kontonumret och kontrollera mot befintliga nummer. Loopar tills det är unikt.
             newAccountNumber = sb.ToString();
         } while (existing.Contains(newAccountNumber));
-
+        // När vi har ett unikt nummer, returnerar man det.
         return newAccountNumber;
     }
 
