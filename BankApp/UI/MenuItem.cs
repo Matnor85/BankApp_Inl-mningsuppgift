@@ -6,23 +6,32 @@ namespace BankApp.UI;
 
 internal class MenuItem
 {
-    // Visa bara texten, ingen setter så att den inte kan ändras efter skapandet.
-    public string Text { get; } 
-    // Action är en delegerad typ som representerar en metod utan parametrar och utan returvärde.
-    public Action Action { get; } 
+    // Texten som användaren ser i menyn.
+    public string Text { get; }
+
+    // Vad som ska hända när användaren väljer detta objekt (metoden som körs).
+    // Är null om objektet inte är valbart (t.ex. en rubrik).
+    public Action Action { get; }
+
+    // Anger om användaren kan markera och klicka på denna rad.
+    // Används för att skilja på klickbara alternativ och statiska rubriker.
     public bool IsSelectable { get; }
 
-    // Konstruktor som tar texten att visa och den action som ska utföras när menyalternativet väljs.
-    // För vanliga val
+    // --- KONSTRUKTORER ---
+
+    // 1. För valbara alternativ (t.ex. "Sätt in pengar").
+    // Action behövs, och IsSelectable sätts automatiskt till true.
     public MenuItem(string text, Action action) : this(text, action, true) { }
 
-    // För icke-markerbara rader (t.ex. rubriker/meddelanden)
+    // 2. För rubriker eller info-text (t.ex. "--- VÄLJ KONTO ---").
+    // Ingen Action behövs, och IsSelectable sätts automatiskt till false.
     public MenuItem(string text) : this(text, null!, false) { }
 
+    // 3. Huvudkonstruktorn som alla andra anropar.
     public MenuItem(string text, Action action, bool isSelectable)
     {
-        Text = text; // Sätt texten som ska visas i menyn.
-        Action = action; // Sätt den action som ska utföras när menyalternativet väljs.
+        Text = text;
+        Action = action;
         IsSelectable = isSelectable;
     }
 }

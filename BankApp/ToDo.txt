@@ -28,7 +28,7 @@ V
 
 Visa alla konton, skriv ut alla konton och saldo på skärmen med Kontonamn och Kontonummer (strängarna) 
 exponera inte Guid:en till användaren.
-
+V
 
 
 
@@ -37,134 +37,32 @@ och när man har valt ett konto så ska en ny meny visas,
 - Sätta in pengar, 
 - ta ut pengar, 
 - visa saldo.
-
+V
 
 
 i program.cs filen så ska hela programmet startas via
 new Bank().ShowBankMenu();
-
+V
 
 
 Menyer, loopar och switchar ska bo inuti Bank klassen.
 
 
+Hur throw new OperationCanceledException(); fungerar i min kod.
 
+Det kan verka lite bakvänt att använda throw (som oftast betyder att något gått fel) för att 
+navigera tillbaka i menyerna. Men i det här sammanhanget är det ett smart sätt att bryta sig ur 
+djupt nästlade meny-loopar (accMenu.Run()) och återgå till huvudmenyn.
 
+Här är en sammanfattning av hur throw new OperationCanceledException(); fungerar i din kod:
 
+   1 Signalen: När koden når denna rad slutar den omedelbart att köra den nuvarande metoden.
 
+   2 Fångandet: ConsoleMenu.cs har en try-catch-block som väntar på just denna typ av signal.
 
+   3 Navigeringen: catch-blocket fångar signalen och gör ett return;, vilket avslutar Run()-metoden för den aktuella menyn.
 
+   4 Resultatet: Du hamnar tillbaka i den meny som ligger "ovanför" den nuvarande i hierarkin.
 
+Det är precis som att trycka på en "Tillbaka-knapp" på en fjärrkontroll!
 
-
-
-
-
-
-private int FindFirstSelectable()
-    {
-        for (int i = 0; i < _items.Count; i++)
-        {
-            if (_items[i].IsSelectable) return i;
-        }
-        return -1;
-    }
-
-    private int MoveSelectable(int start, int dir)
-    {
-        if (_items.Count == 0) return -1;
-        int i = start;
-        int attempts = 0;
-        do
-        {
-            i = (i + dir + _items.Count) % _items.Count;
-            attempts++;
-            if (_items[i].IsSelectable) return i;
-        } while (attempts < _items.Count);
-        return start;
-    }
-
-
-
-public void ShowMenu()
-    {
-        Console.Clear();
-        Console.WriteLine("Välkommen till banken!");
-        Console.WriteLine("1. Skapa konto");
-        Console.WriteLine("2. Visa konton");
-        Console.WriteLine("3. Ta bort Konto");
-        Console.WriteLine("4. Gör en insättning");
-        Console.WriteLine("5. Gör ett uttag");
-        Console.WriteLine("6. Avsluta");
-        ConsoleKeyInfo key = Console.ReadKey();
-        switch (key.Key)
-        {
-            case ConsoleKey.D1:
-                ShowAccountTypes();
-                break;
-            case ConsoleKey.D2:
-                ShowAccounts();
-                break;
-            case ConsoleKey.D3:
-                RemoveAccount();
-                break;
-            case ConsoleKey.D4:
-                Deposit();
-                break;
-            case ConsoleKey.D5:
-                Withdraw();
-                break;
-            case ConsoleKey.D6:
-                Environment.Exit(0);
-                break;
-            default:
-                Console.WriteLine("Ogiltigt val, försök igen.");
-                break;
-        }
-    }
-
-    public void ShowAccountTypes()
-    {
-        Console.Clear();
-        Console.WriteLine("Vilken typ av konto vill du skapa?");
-        Console.WriteLine("1. Bankkonto");
-        Console.WriteLine("2. ISK-konto");
-        Console.WriteLine("3. Uddevalla-konto");
-        Console.WriteLine("4. Tillbaka");
-        ConsoleKeyInfo key = Console.ReadKey();
-        if (key.Key == ConsoleKey.D4)
-        {
-            ShowMenu();
-            return;
-        }
-        if (key.Key < ConsoleKey.D1 || key.Key > ConsoleKey.D4)
-        {
-            Console.Clear();
-            Console.WriteLine("Ogiltigt val, försök igen.");
-            Thread.Sleep(800);
-            ShowAccountTypes();
-            return; 
-        }
-        var (name, balance) = GetAccountDetails();
-        switch (key.Key)
-        {
-            case ConsoleKey.D1:
-                accounts.Add(new BankAccount(name, balance));
-                break;
-
-            case ConsoleKey.D2:
-                accounts.Add(new IskAccount(name, balance));
-                break;
-
-            case ConsoleKey.D3:
-                accounts.Add(new UddevallaAccount(name, balance));
-                break;
-
-            case ConsoleKey.D4:
-                break;
-
-            default:
-                Console.WriteLine("Ogiltigt val, försök igen.");
-                break;
-        }
-    }

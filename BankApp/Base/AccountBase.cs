@@ -56,37 +56,77 @@ internal abstract class AccountBase
         bankTransactions.Add(t);
         return true;
     }
-    public string GenerateNumber(int t)
+    private static readonly Random s_random = new Random();
+
+    // Robust GenerateNumber: kan ta en befintlig kontolista att kontrollera unikt mot.
+    public string GenerateNumber(int t, IEnumerable<AccountBase>? existingAccounts = null)
     {
-        Random random = new Random();
+        if (t <= 0) throw new ArgumentOutOfRangeException(nameof(t), "t måste vara > 0");
+
+        var existing = (existingAccounts ?? Enumerable.Empty<AccountBase>())
+                       .Select(a => a.AccountNumber)
+                       .Where(n => !string.IsNullOrEmpty(n))
+                       .ToHashSet(StringComparer.OrdinalIgnoreCase);
+
         string newAccountNumber;
-        bool isUnique;
         do
         {
-            newAccountNumber = "";
-            isUnique = true;
-
+            var sb = new StringBuilder(t + (t - 1) / 4);
             for (int i = 0; i < t; i++)
             {
-                // Slumpa en siffra mellan 0 och 9 och lägg till i strängen
-                newAccountNumber += random.Next(0, 10).ToString();
+                sb.Append(s_random.Next(0, 10));
+                if ((i + 1) % 4 == 0 && i < t - 1)
+                {
+                    sb.Append('-');
+                }
+            }
+            newAccountNumber = sb.ToString();
+        } while (existing.Contains(newAccountNumber));
 
-                if ((i + 1) % 4 == 0 && i < t - 1) // en if-sats som kontrollerar
-                {
-                    newAccountNumber += "-";
-                }
-            }
-            Bank bank = new Bank();
-            foreach (var account in bank.accounts)
-            {
-                if (account.AccountNumber == newAccountNumber)
-                {
-                    isUnique = false; 
-                    break;
-                }
-            }
-        } while (!isUnique);
         return newAccountNumber;
     }
-   
+
+    // Backwards-compatible overload om nån använder den gamla signaturen:
+    public string GenerateNumber(int t)
+    {
+        return GenerateNumber(t, null);
+    }
 }
+    //public string GenerateNumber(int t)
+    //{
+    //    Random random = new Random();
+    //    string newAccountNumber;
+    //    bool isUnique;
+    //    do
+    //    {
+    //        newAccountNumber = "";
+    //        isUnique = true;
+
+    //        for (int i = 0; i < t; i++)
+    //        {
+    //            // Slumpa en siffra mellan 0 och 9 och lägg till i strängen
+    //            newAccountNumber += random.Next(0, 10).ToString();
+
+    //            // Efter var fjärde tecken så läggs ett bindesträck till för att lättare kunna läsa nummret.
+    //            if ((i + 1) % 4 == 0 && i < t - 1)
+    //            {
+    //                newAccountNumber += "-";
+    //            }
+    //        }
+
+    //        // Här kontrollerar vi så att det blir ett unikt konmto nummer
+    //        Bank bank = new Bank();
+    //        foreach (var account in bank.accounts)
+    //        {
+    //            if (account.AccountNumber == newAccountNumber)
+    //            {
+    //                isUnique = false; 
+    //                break;
+    //            }
+    //        }
+    //      // körs tills det blir ett unikt nummer.
+    //    } while (!isUnique);
+    //    return newAccountNumber;
+    //}
+   
+//}

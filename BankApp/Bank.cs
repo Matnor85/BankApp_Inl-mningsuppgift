@@ -13,10 +13,24 @@ namespace BankApp;
 internal class Bank
 {
     internal List<AccountBase> accounts = new List<AccountBase>();
+
     internal void AddAccount(AccountBase account)
     {
+        // Förhindra dubbelinläggning baserat på AccountNumber
+        if (!string.IsNullOrEmpty(account.AccountNumber) &&
+            accounts.Any(a => a.AccountNumber == account.AccountNumber))
+        {
+            // Ignorera dubblett eller logga om du vill
+            return;
+        }
+
         accounts.Add(account);
     }
+
+    //internal void AddAccount(AccountBase account)
+    //{
+    //    accounts.Add(account);
+    //}
     internal void RemoveAccount(Guid accountId)
     {
         var account = accounts.FirstOrDefault(x => x.Id == accountId);
@@ -53,7 +67,8 @@ internal class Bank
 
         // Bygg konto-listan som användaren kan välja från (visar endast namn + kontonummer).
         var accountMenuItems = new List<MenuItem>();
-        foreach (var acc in accounts)
+        var sortedList = accounts.OrderBy(a => a.AccountName);
+        foreach (var acc in sortedList)
         {
             var local = acc; // viktig för closure
             accountMenuItems.Add(new MenuItem($"- Konto namn: {local.AccountName} - Kontonummer: ({local.AccountNumber})", () =>
@@ -248,7 +263,7 @@ internal class Bank
                     var confirmMenu = new ConsoleMenu(new[]
                     {
                         new MenuItem($"Vill du ta bort kontot '{acc.AccountName}' ({acc.AccountNumber})?"),
-                       
+
                         new MenuItem("Nej", () =>
                         {
                             Console.Clear();
@@ -296,22 +311,38 @@ internal class Bank
     public void ShowAccounts()
     {
         Console.Clear();
-        Console.WriteLine("Dina konton:");
+
+        Console.WriteLine("Dina konton:\n");
+        Console.WriteLine("***************************************");
         if (accounts.Count == 0)
         {
             Console.WriteLine("Du har inga konton registrerade.");
+            Console.WriteLine("Tryck Enter för att gå tillbaka.");
+            Console.ReadLine();
+            // Avsluta undermeny så ConsoleMenu kan återgå / menyn hålls konsekvent
+            throw new OperationCanceledException();
         }
-        foreach (var account in accounts)
+        else
         {
-            Console.WriteLine($"- Konto: {account.AccountType}" +
-                $"\n- Kontonamn: {account.AccountName} " +
-                $"\n- Kontonr: {account.AccountNumber}" +
-                $"\n- CCV: {account.CCV} " +
-                $"\n- Saldo: {account.Balance()}kr" +
-                $"\n- Räntesats: {account.InterestRate}%");
-            Console.WriteLine("***************************************");
+            // Sorterar Listan i bokstavsordning.
+            var sortedAccounts = accounts.OrderBy(a => a.AccountName).ToList();
+            Console.WriteLine($"Antal konton: {sortedAccounts.Count}\n");
+
+            foreach (var account in sortedAccounts)
+            {
+                Console.WriteLine($"- Konto: {account.AccountType}" +
+                    $"\n- Kontonamn: {account.AccountName} " +
+                    $"\n- Kontonr: {account.AccountNumber}" +
+                    $"\n- CCV: {account.CCV} " +
+                    $"\n- Saldo: {account.Balance():N2}kr" +
+                    $"\n- Räntesats: {account.InterestRate}%");
+                Console.WriteLine("***************************************");
+            }
         }
+        Console.WriteLine("\nTryck Enter för att gå tillbaka.");
         Console.ReadLine();
+        // Signalera att vi vill återgå till föregående meny (samma mönster som du använder för andra menyer)
+        throw new OperationCanceledException();
     }
 
     public void Deposit()
