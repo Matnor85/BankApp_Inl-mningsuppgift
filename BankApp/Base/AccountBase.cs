@@ -95,6 +95,24 @@ internal abstract class AccountBase
     {
         return GenerateNumber(t, null);
     }
+
+    public void CalculateInterest()
+    {
+        for (int i = 0; i < bankTransactions.Count; i++)
+        {
+            var transaction = bankTransactions[i];
+            if (transaction.TrancactionDate.AddMonths(1) <= DateTime.Now)
+            {
+                var interest = Balance() * InterestRate / 100;
+                var interestTransaction = new BankTransaction
+                {
+                    Amount = interest,
+                    TrancactionDate = DateTime.Now
+                };
+                bankTransactions.Add(interestTransaction);
+            }
+        }
+    }
 }
     //public string GenerateNumber(int t)
     //{
