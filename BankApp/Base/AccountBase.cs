@@ -16,13 +16,16 @@ internal abstract class AccountBase
     public decimal InterestRate { get; set; } = 0;
 
     protected List<BankTransaction> bankTransactions = new List<BankTransaction>();
-   
 
     internal abstract decimal Balance();
 
     public List<BankTransaction> GetTransactions()
     {
         return bankTransactions;
+    }
+    protected AccountBase()
+    {
+        
     }
 
     internal virtual bool Deposit(decimal amount)
@@ -54,6 +57,37 @@ internal abstract class AccountBase
         bankTransactions.Add(t);
         return true;
     }
+
+    // Intern metod för att lägga in transaktioner med ett specifikt datum (används av testdata).
+    internal void AddTransaction(decimal amount, DateTime date)
+    {
+        var t = new BankTransaction { Amount = amount, TrancactionDate = date };
+        bankTransactions.Add(t);
+    }
+
+
+    // Beräknar räntan genom att bokstavligen titta på saldot varje enskild dag
+    public decimal CalculateYearlyInterest(int year)
+    {
+        decimal totalInterest = 0;
+        decimal dailyRate = (InterestRate / 100m) / 365m;
+
+        // Vi går igenom året dag för dag, precis som banken
+        for (DateTime date = new DateTime(year, 1, 1); date <= new DateTime(year, 12, 31); date = date.AddDays(1))
+        {
+            // Räkna ut vad saldot var JUST DENNA DAG
+            // Det är startbalansen + alla transaktioner fram till och med detta datum
+            decimal balanceThisDay = StartingBalance + bankTransactions
+                .Where(t => t.TrancactionDate.Date <= date.Date)
+                .Sum(t => t.Amount);
+
+            // Räkna ut räntan för denna enda dag och lägg till i potten
+            totalInterest += balanceThisDay * dailyRate;
+        }
+
+        return Math.Round(totalInterest, 2);
+    }
+
     // För att undvika att skapa en ny Random-instans varje gång,
     // vilket kan leda till samma nummer om det sker snabbt, använder vi en statisk instans.
     private static readonly Random s_random = new Random();
@@ -103,7 +137,7 @@ internal abstract class AccountBase
             var transaction = bankTransactions[i];
             if (transaction.TrancactionDate.AddMonths(1) <= DateTime.Now)
             {
-                var interest = Balance() * InterestRate / 100;
+                var interest = Balance() * InterestRate / 365;
                 var interestTransaction = new BankTransaction
                 {
                     Amount = interest,

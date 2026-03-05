@@ -59,6 +59,40 @@ internal class DataGenerator
             }
         }
     }
+
+    public void PopulateWithInterestTestData(Bank bank)
+    {
+        if (bank == null) throw new ArgumentNullException(nameof(bank));
+        if (bank.accounts.Count > 0) return; // undvik dubbelpåfyllning
+
+        // Skapa konto med startbelopp 1000 kr och ränta 5%
+        var account = new BankAccount("Testkonto", 1000m);
+        account.AccountType = "BankAccount";
+        account.InterestRate = 5.0m; // 5%
+
+        // 10 deterministiska insättningar under 2025 (fast schema)
+        var deposits = new (int month, int day, decimal amount)[]
+        {
+            (1, 15, 500m),
+            (2, 14, 300m),
+            (3, 10, 700m),
+            (4, 20, 250m),
+            (5, 05, 400m),
+            (6, 30, 600m),
+            (7, 01, 200m),
+            (8, 18, 350m),
+            (9, 25, 450m),
+            (11, 11, 1000m)
+        };
+
+        foreach (var d in deposits)
+        {
+            var date = new DateTime(2025, d.month, d.day);
+            account.AddTransaction(d.amount, date);
+        }
+
+        bank.AddAccount(account);
+    }
 }
 /*
   public void PopulateWithTestData(Bank bank)
@@ -95,5 +129,6 @@ internal class DataGenerator
     }
 }
  */
+
 
 

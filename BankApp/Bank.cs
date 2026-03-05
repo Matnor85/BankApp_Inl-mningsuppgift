@@ -1,5 +1,8 @@
 ﻿using BankApp.Accounts;
 using BankApp.Base;
+using BankApp.Faktory;
+using BankApp.Models;
+using BankApp.Types;
 using BankApp.UI;
 using System;
 using System.Collections.Generic;
@@ -33,7 +36,7 @@ internal class Bank
 
         accounts.Add(account);
     }
-  
+
     internal void RemoveAccount(Guid accountId)
     {
         var account = accounts.FirstOrDefault(x => x.Id == accountId);
@@ -81,7 +84,8 @@ internal class Bank
                 var accountActions = new List<MenuItem>
                 {
                     // Rubrik / icke-markerbar rad med kontoinformation (kan inte väljas, bara informativ)
-                    new MenuItem($"- Konto Namn: {local.AccountName}\n" +
+                    new MenuItem(
+                    $"- Konto Namn: {local.AccountName}\n" +
                     $"- Kontotyp: {local.AccountType}\n" +
                     $"- Kontonumer: {local.AccountNumber}\n" +
                     $"- CCV: {local.CCV}\n" +
@@ -100,7 +104,7 @@ internal class Bank
                             Console.ReadLine();
                             throw new OperationCanceledException();
                         }
-                        
+
                         local.Deposit(amount);
                         Console.WriteLine($"Insättning {amount} kr genomförd. Tryck Enter för att fortsätta...");
                         Console.ReadLine();
@@ -150,9 +154,33 @@ internal class Bank
                         Console.ReadLine();
                         throw new OperationCanceledException();
                     }),
+                    new MenuItem("Räntan", () =>
+                    {
+                        Console.Clear();
+                        Console.WriteLine($"Ränta för konto: {local.AccountName} ({local.AccountNumber})");
+                        Console.WriteLine("Ange år att beräkna ränta för. Tryck Enter för standard (2025):");
+                        var text = Console.ReadLine();
+                        int year = 2025;
+                        if (!string.IsNullOrWhiteSpace(text) && !int.TryParse(text.Trim(), out year))
+                        {
+                            Console.WriteLine("Ogiltigt år. Tryck Enter för att återgå.");
+                            Console.ReadLine();
+                            throw new OperationCanceledException();
+                        }
+                    
+                        // Anropa basklassens metod som räknar dag-för-dag
+                        var interest = local.CalculateYearlyInterest(year);
+
+                        Console.WriteLine();
+                        Console.WriteLine($"Beräknad ränta för {year}: {interest:N2} kr");
+                        Console.WriteLine();
+                        Console.WriteLine("Tryck Enter för att fortsätta...");
+                        Console.ReadLine();
+                        throw new OperationCanceledException();
+                    }),
                     new MenuItem("Tillbaka", () => { throw new OperationCanceledException(); })
                 };
-                
+
                 var accMenu = new ConsoleMenu(accountActions);
                 accMenu.Run();
             }));
@@ -182,25 +210,43 @@ internal class Bank
         {
             new MenuItem("Bankkonto", () =>
             {
-                var (name, balance) = GetAccountDetails();
-                accounts.Add(new BankAccount(name, balance));
+                AccountDetails bankKonto = GetAccountDetails(0);
+
+                accounts.Add(AccountFaktory.CreateAccount(bankKonto));
                 Console.WriteLine("Bankkonto skapat. Tryck Enter för att fortsätta...");
                 Console.ReadLine();
-                throw new OperationCanceledException();
+                return;
+                //throw new OperationCanceledException();
             }),
             new MenuItem("ISK-konto", () =>
             {
-                var (name, balance) = GetAccountDetails();
-                accounts.Add(new IskAccount(name, balance));
+                AccountDetails iskKonto = GetAccountDetails(1);
+                accounts.Add(AccountFaktory.CreateAccount(iskKonto));
                 Console.WriteLine("ISK-konto skapat. Tryck Enter för att fortsätta...");
                 Console.ReadLine();
                 throw new OperationCanceledException();
             }),
             new MenuItem("Uddevalla-konto", () =>
             {
-                var (name, balance) = GetAccountDetails();
-                accounts.Add(new UddevallaAccount(name, balance));
+                AccountDetails uddevallaKonto = GetAccountDetails(2);
+                accounts.Add(AccountFaktory.CreateAccount(uddevallaKonto));
                 Console.WriteLine("Uddevalla-konto skapat. Tryck Enter för att fortsätta...");
+                Console.ReadLine();
+                throw new OperationCanceledException();
+            }),
+            new MenuItem("Spar-konto", () =>
+            {
+                AccountDetails sparKonto = GetAccountDetails(3);
+                accounts.Add(AccountFaktory.CreateAccount(sparKonto));
+                Console.WriteLine("Spar-konto skapat. Tryck Enter för att fortsätta...");
+                Console.ReadLine();
+                throw new OperationCanceledException();
+            }),
+            new MenuItem("Fastränte-konto", () =>
+            {
+                AccountDetails fastRänteKonto = GetAccountDetails(4);
+                accounts.Add(AccountFaktory.CreateAccount(fastRänteKonto));
+                Console.WriteLine("Fastränte-konto skapat. Tryck Enter för att fortsätta...");
                 Console.ReadLine();
                 throw new OperationCanceledException();
             }),
@@ -213,12 +259,12 @@ internal class Bank
         menu.Run();
     }
 
-    private (string name, decimal balance) GetAccountDetails()
+    private AccountDetails GetAccountDetails(int selectedType)
     {
         string name = "";
         decimal balance = 0;
         bool isValid = false;
-
+        AccountDetails accountDetails = new AccountDetails();
         do
         {
             Console.Clear();
@@ -238,7 +284,7 @@ internal class Bank
 
             // Hantera startbelopp
             Console.WriteLine("Ange startbelopp:");
-            string balanceInput = Console.ReadLine()!;
+            var balanceInput = Console.ReadLine();
 
             // TryParse försöker konvertera och kraschar inte om det är fel
             if (!decimal.TryParse(balanceInput, out balance) || balance < 0)
@@ -247,13 +293,19 @@ internal class Bank
                 Console.ReadKey();
                 continue; // Gör om loopen
             }
+            // Leker med Fabriken och skapar en instans av AccountDetails, även om den inte används direkt här,
+            // så att vi kan använda den i framtiden om vi vill utöka funktionaliteten (t.ex. lägga till fler fält
+            // eller göra mer avancerade valideringar).
+            accountDetails = new AccountDetails { AccountName = name, Balance = balance, AccountType = (AccountType) selectedType };
+            // ska vi sätta vilken typ av konto det är också som vi har valt.
 
             // Allt är korrekt!
-            isValid = true; 
+            isValid = true;
 
         } while (!isValid);
 
-        return (name, balance);
+        return accountDetails;
+        //return accountDetails;
     }
 
     public void RemoveAccount()
@@ -343,19 +395,19 @@ internal class Bank
             // Avsluta undermeny så ConsoleMenu kan återgå / menyn hålls konsekvent
             throw new OperationCanceledException();
         }
-       
-            // Sorterar Listan i bokstavsordning.
-            var sortedAccounts = accounts.OrderBy(a => a.AccountName).ToList();
-            Console.WriteLine($"Antal konton: {sortedAccounts.Count}\n");
 
-            foreach (var account in sortedAccounts)
-            {
-                Console.WriteLine($"- Kontonamn: {account.AccountName} " +
-                    $"\n- Kontonr: {account.AccountNumber}" +
-                    $"\n- Saldo: {account.Balance():N2}kr");
-                Console.WriteLine("***************************************");
-            }
-        
+        // Sorterar Listan i bokstavsordning.
+        var sortedAccounts = accounts.OrderBy(a => a.AccountName).ToList();
+        Console.WriteLine($"Antal konton: {sortedAccounts.Count}\n");
+
+        foreach (var account in sortedAccounts)
+        {
+            Console.WriteLine($"- Kontonamn: {account.AccountName} " +
+                $"\n- Kontonr: {account.AccountNumber}" +
+                $"\n- Saldo: {account.Balance():N2}kr");
+            Console.WriteLine("***************************************");
+        }
+
         Console.WriteLine("\nTryck Enter för att gå tillbaka.");
         Console.ReadLine();
         // Återgår till föregående meny (samma mönster som du använder för andra menyer)
